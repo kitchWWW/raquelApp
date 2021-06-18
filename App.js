@@ -1,13 +1,30 @@
-import * as React from 'react';
-import { FlatList, Text, View, StyleSheet, Button } from 'react-native';
+import React from "react";
+import { ImageBackground, StyleSheet, Text, View, Button} from "react-native";
 import { Audio } from 'expo-av';
+import AppLoading from 'expo-app-loading';
+
 
 const play_audio_message = 'play audio'
 const pause_audio_message = 'pause audio'
 
+import { useFonts, Lusitana_400Regular, Lusitana_700Bold } from '@expo-google-fonts/lusitana';
+import { Montserrat_100Thin , Montserrat_400Regular_Italic} from '@expo-google-fonts/montserrat';
+
+
+import image from './assets/background.jpg'
+
 export default function App() {
+
   const [buttonText, setButtonText] = React.useState(play_audio_message);
   const [sound, setSound] = React.useState();
+
+  let [fontsLoaded] = useFonts({
+    Lusitana_400Regular,
+    Lusitana_700Bold,
+    Montserrat_100Thin,
+    Montserrat_400Regular_Italic
+
+  });
 
   async function buttonPressed() {
     console.log("button pressed!")
@@ -38,57 +55,71 @@ export default function App() {
       }      
     }
   }  
-
+if (!fontsLoaded) {
+    return <AppLoading/>;
+  } else {
   return (
-    <View style={styles.container}>
-    <View style={styles.content}>
-    <Text style={styles.text}>Raquel is Awesome!</Text>
-    <Text style={styles.text}>Here is some text you can read if you want to read about the thing we are working on so you can be prepared for this super awesome piece called</Text>
-    <Text style={styles.titleText}>title title title</Text>
-    <Text style={styles.text}>Raquel spent a lot of time working on it, so you should press the button down below to join in and make things happen yay!</Text>
-    <Button title={buttonText} onPress={buttonPressed} />
-    <Text style={styles.text}>Having trouble?</Text>
-    <FlatList
-        data={[
-          {key: '1. Make sure you have your volume up'},
-          {key: '2. Make sure your phone isn\'t on silent mode (side toggle)'},
-          {key: '3. Do you have headphones plugged in?'},
-        ]}
-        renderItem={({item}) => <Text style={styles.listText}>{item.key}</Text>}
-      />
+  <View style={styles.container}>
+    <ImageBackground source={image} style={styles.image}>
+      <Text style={styles.titletext}>Polyphonic Interlace </Text>
+      <Text style={styles.authorText}>Raquel Acevedo Klein </Text>
+      <View style={styles.buttonStyle}>
+      <Button title={buttonText} onPress={buttonPressed}   touchSoundDisabled={true}        color="#f194ff" style={styles.buttonStyle}/>
+      </View>
+      <Text style={styles.text}>
+This symphonious, surround-sound performance invites you to travel amidst a sea of voices, emerging from several directions. Each track has been pre-recorded by composer and vocalist Raquel Acevedo Klein, who weaves her own voice into a polyphonic tapestry of stories from across New York City at the cusp of reopening. All are welcome to play parts of the music from a smartphone. Press "Play Audio" to begin.
+</Text>
+      <Text style={styles.text}>
+      Art and music by Raquel Acevedo Klein. App by Brian Ellis
+      </Text>
 
-    </View>
-    </View>
-  );
+    </ImageBackground>
+  </View>
+);
+}
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    textAlign: 'center',
-    backgroundColor: '#ecf0f1',
-    padding: 10,
-    width: '100%',
+    flexDirection: "column"
   },
-  buttonStyle:{
-    fontSize:80,
+  image: {
+    flex: 1,
+    resizeMode: "cover",
+    justifyContent: "center"
   },
-  content: {
-    maxWidth: 500,
-    justifyContent: 'center',
-    textAlign: 'left',
+  buttonStyle: {
+    marginTop:20,
+    marginLeft:20,
+    marginRight:20,
+  },
+  titletext: {
+    color: "black",
+    fontSize: 42,
+    fontWeight: "bold",
+        fontFamily: 'Montserrat_100Thin',
+
+    textAlign: "right",
+    backgroundColor: "#FFFFFFa0"
+  },
+  authorText: {
+    color: "black",
+    fontSize: 25,
+        fontFamily: 'Montserrat_400Regular_Italic',
+
+    fontWeight: "bold",
+    textAlign: "right",
+    backgroundColor: "#FFFFFFa0"
   },
   text: {
-    margin:10,
-  },
-  listText: {
-    marginLeft:10,
-    marginRight:10,
-  },
-  titleText:{
+    borderWidth: 20,
+    borderColor:"#FFFFFF00",
+    margin:20,
+    color: "black",
     fontSize: 20,
-    fontStyle: 'italic',
-    textAlign: 'center',
+    fontFamily: 'Lusitana_400Regular',
+    textAlign: "left",
+    backgroundColor: "#FFFFFFa0"
   }
 });
