@@ -1,125 +1,615 @@
+import * as Linking from 'expo-linking';
 import React from "react";
-import { ImageBackground, StyleSheet, Text, View, Button} from "react-native";
+import { ImageBackground, StyleSheet, Dimensions, TouchableHighlight, Image, Text, View, Button, SafeAreaView, ScrollView } from "react-native";
 import { Audio } from 'expo-av';
 import AppLoading from 'expo-app-loading';
+import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 
 
-const play_audio_message = 'play audio'
-const pause_audio_message = 'pause audio'
+const play_button_icon = 'play_button_icon'
+const pause_button_icon = 'pause_button_icon'
 
-import { useFonts, Lusitana_400Regular, Lusitana_700Bold } from '@expo-google-fonts/lusitana';
-import { Montserrat_100Thin , Montserrat_400Regular_Italic} from '@expo-google-fonts/montserrat';
+import { useFonts } from '@expo-google-fonts/lusitana';
 
-
-import image from './assets/background.jpg'
+import backgroundImage from './assets/background.jpg'
+import recOrange from './assets/res/recOrange.png';
 
 export default function App() {
 
-  const [buttonText, setButtonText] = React.useState(play_audio_message);
+  const [buttonState, setButtonState] = React.useState(play_button_icon);
+  const [buttonTracksState, setButtonTracksState] = React.useState([play_button_icon, play_button_icon, play_button_icon]);
+
   const [sound, setSound] = React.useState();
+  const [tracks, setTracks] = React.useState([null, null, null]);
+
+
+  const [timestampA, setTimestampA] = React.useState(0);
+  const [timestampDisplayA, setTimestampDisplayA] = React.useState("00:00");
+  const [timestampB, setTimestampB] = React.useState(0);
+  const [timestampDisplayB, setTimestampDisplayB] = React.useState("00:00");
+  const [timestampC, setTimestampC] = React.useState(0);
+  const [timestampDisplayC, setTimestampDisplayC] = React.useState("00:00");
+
+
+  const [timestamp, setTimestamp] = React.useState(0);
+  const [timestampDisplay, setTimestampDisplay] = React.useState("00:00");
+
+  const dimensions = Dimensions.get('window');
+  const imageHeight = Math.round((dimensions.width - 80) / 1.8869047619);
+  const imageWidth = (dimensions.width - 80);
 
   let [fontsLoaded] = useFonts({
-    Lusitana_400Regular,
-    Lusitana_700Bold,
-    Montserrat_100Thin,
-    Montserrat_400Regular_Italic
-
+    FuturaBold: require('./assets/fonts/FuturaCondensedExtraBold.ttf'),
+    FuturaNormal: require('./assets/fonts/FuturaCondensedMedium.otf'),
+    Fancy: require('./assets/fonts/IMFellDoublePica-Italic.ttf'),
+    Baroque: require('./assets/fonts/BaroqueTextJFRegular.ttf'),
   });
+
+  async function forwardThirty() {
+    if (sound) {
+      sound.setPositionAsync(timestamp + 30000)
+    }
+  }
+
+
+  async function replayThirty() {
+    if (sound) {
+      sound.setPositionAsync(timestamp - 30000)
+    }
+  }
+
+
+  async function forwardThirtyTrack(trackNo) {
+    var trackIndex = trackNo - 1
+    if (trackNo == 1) {
+      tracks[trackIndex].setPositionAsync(timestampA + 30000)
+    }
+    if (trackNo == 2) {
+      tracks[trackIndex].setPositionAsync(timestampB + 30000)
+    }
+    if (trackNo == 3) {
+      tracks[trackIndex].setPositionAsync(timestampC + 30000)
+    }
+  }
+
+  async function replayThirtyTrack(trackNo) {
+    var trackIndex = trackNo - 1
+    if (trackNo == 1) {
+      tracks[trackIndex].setPositionAsync(timestampA - 30000)
+    }
+    if (trackNo == 2) {
+      tracks[trackIndex].setPositionAsync(timestampB - 30000)
+    }
+    if (trackNo == 3) {
+      tracks[trackIndex].setPositionAsync(timestampC - 30000)
+    }
+  }
+
+
+
+  function onPlaybackStatusUpdate(playbackUpdate) {
+    if (playbackUpdate.didJustFinish) {
+      setButtonState(play_button_icon)
+    }
+    console.log("playback update")
+    console.log(playbackUpdate)
+    var lastUpdatedTime = playbackUpdate.positionMillis
+    setTimestamp(lastUpdatedTime)
+    var seconds = lastUpdatedTime / 1000
+
+    var newThing = new Date(seconds * 1000).toISOString().substr(14, 5)
+    setTimestampDisplay(newThing)
+  }
+
+  function onPlaybackStatusUpdateTrack(playbackUpdate, trackNo) {
+    console.log("playback update tracks")
+    var trackIndex = trackNo - 1
+    if (playbackUpdate.didJustFinish) {
+      var newbuttonTracksState = [...buttonTracksState]
+      newbuttonTracksState[trackIndex] = play_button_icon
+      setButtonTracksState(newbuttonTracksState)
+    }
+    var lastUpdatedTime = playbackUpdate.positionMillis
+    var seconds = lastUpdatedTime / 1000
+    var newThing = new Date(seconds * 1000).toISOString().substr(14, 5)
+    if (trackNo === 1) {
+      setTimestampA(lastUpdatedTime)
+      setTimestampDisplayA(newThing)
+    }
+    if (trackNo === 2) {
+      setTimestampB(lastUpdatedTime)
+      setTimestampDisplayB(newThing)
+    }
+    if (trackNo === 3) {
+      setTimestampC(lastUpdatedTime)
+      setTimestampDisplayC(newThing)
+    }
+
+  }
+
+
 
   async function buttonPressed() {
     console.log("button pressed!")
     console.log(sound)
     console.log(!sound)
     var loadingSound
-    if(!sound){
+    if (!sound) {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
-      }); 
-      loadingSound = await Audio.Sound.createAsync(
-        require('./assets/raquel2.mp3')
-      );
+      });
+      if (Math.random() > .5) {
+        loadingSound = await Audio.Sound.createAsync(
+          require('./assets/phoneA.mp3')
+        );
+      } else {
+        loadingSound = await Audio.Sound.createAsync(
+          require('./assets/phoneB.mp3')
+        );
+      }
       await loadingSound.sound.playAsync();
-      setSound(loadingSound)
-      setButtonText(pause_audio_message)
-    }else{
-      if(buttonText === play_audio_message){
-        console.log("a thing for the third time!!") 
+      setSound(loadingSound.sound)
+      loadingSound.sound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+      setButtonState(pause_button_icon)
+    } else {
+      if (buttonState === play_button_icon) {
+        console.log("a thing for the third time!!")
         console.log(sound)
         console.log("playing")
-        await sound.sound.playAsync();
-        setButtonText('pause audio');
+        await sound.playAsync();
+        setButtonState(pause_button_icon);
+        console.log(buttonState)
       } else {
         console.log("pausing")
-        await sound.sound.pauseAsync();
-        setButtonText(play_audio_message);
-      }      
+        await sound.pauseAsync();
+        setButtonState(play_button_icon);
+      }
     }
-  }  
-if (!fontsLoaded) {
+  }
+
+
+  async function buttonPressedTrack(trackNo) {
+    var loadingSound
+    var trackIndex = trackNo - 1
+    if (tracks[trackIndex] === null) {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+      });
+      loadingSound = await Audio.Sound.createAsync(
+        trackNo === 1 ? require('./assets/phoneA.mp3') : require('./assets/phoneB.mp3')
+      );
+      await loadingSound.sound.playAsync();
+      tracks[trackIndex] = loadingSound.sound
+      setTracks(tracks);
+      loadingSound.sound.setOnPlaybackStatusUpdate((playbackDeets) => onPlaybackStatusUpdateTrack(playbackDeets, trackNo));
+
+      var newbuttonTracksState = [...buttonTracksState]
+      newbuttonTracksState[trackIndex] = pause_button_icon
+      setButtonTracksState(newbuttonTracksState)
+    } else {
+      if (buttonTracksState[trackIndex] === play_button_icon) {
+        tracks[trackIndex].playAsync();
+        var newbuttonTracksState = [...buttonTracksState]
+        newbuttonTracksState[trackIndex] = pause_button_icon
+        setButtonTracksState(newbuttonTracksState)
+      } else {
+        tracks[trackIndex].pauseAsync();
+        var newbuttonTracksState = [...buttonTracksState]
+        newbuttonTracksState[trackIndex] = play_button_icon
+        setButtonTracksState(newbuttonTracksState)
+      }
+    }
+  }
+
+  if (!fontsLoaded) {
     return <AppLoading/>;
   } else {
-  return (
-  <View style={styles.container}>
-    <ImageBackground source={image} style={styles.image}>
-      <Text style={styles.titletext}>Polyphonic Interlace </Text>
-      <Text style={styles.authorText}>Raquel Acevedo Klein </Text>
-      <View style={styles.buttonStyle}>
-      <Button title={buttonText} onPress={buttonPressed}   touchSoundDisabled={true}        color="#f194ff" style={styles.buttonStyle}/>
-      </View>
-      <Text style={styles.text}>
-This symphonious, surround-sound performance invites you to travel amidst a sea of voices, emerging from several directions. Each track has been pre-recorded by composer and vocalist Raquel Acevedo Klein, who weaves her own voice into a polyphonic tapestry of stories from across New York City at the cusp of reopening. All are welcome to play parts of the music from a smartphone. Press "Play Audio" to begin.
-</Text>
-      <Text style={styles.text}>
-      Art and music by Raquel Acevedo Klein. App by Brian Ellis
-      </Text>
-
-    </ImageBackground>
-  </View>
-);
-}
+    return (
+      <SafeAreaView style={ styles.container }>
+        <ImageBackground
+                         source={ backgroundImage }
+                         style={ styles.image }>
+          <ScrollView style={ styles.scrollView }>
+            <View style={ styles.titletext }>
+              <Image
+                     style={ { marginTop: 15, height: 75, width: 370, marginLeft: 'auto', marginRight: 'auto' } }
+                     source={ require('./assets/res/titleTitle.png') } />
+              <Text style={ { marginTop: -10, marginBottom: 15, paddingLeft: 70, color: "black", fontSize: 20, fontFamily: 'FuturaNormal', } }>
+                by
+                <Text style={ styles.inlineBold }>
+                  { " " }Raquel Acevedo Klein
+                </Text>
+              </Text>
+            </View>
+            <Image
+                   style={ { marginTop: 20, height: 205, width: 370, marginLeft: 'auto', marginRight: 'auto' } }
+                   source={ require('./assets/res/FullTitleBlob2.png') } />
+            <View style={ { flexDirection: 'row', height: 130, padding: 20, } }>
+              <View style={ { flex: 0.5 } } />
+              <View style={ { flexDirection: 'row', backgroundColor: '#7BF8D9', borderRadius: 65 } }>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 65 } }
+                                    onPress={ replayThirty }>
+                  <MaterialIcons
+                                 name="replay-30"
+                                 size={ 90 }
+                                 color="black" />
+                </TouchableHighlight>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 65 } }
+                                    onPress={ buttonPressed }>
+                  { buttonState === play_button_icon ?
+                    <Ionicons
+                              name="play-circle"
+                              size={ 80 }
+                              color="black" /> :
+                    <Ionicons
+                              name="pause-circle"
+                              size={ 80 }
+                              color="black" /> }
+                </TouchableHighlight>
+                <Text style={ { fontSize: 40, paddingTop: 20, width: 110 } }>
+                  { timestampDisplay }
+                </Text>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 65 } }
+                                    onPress={ forwardThirty }>
+                  <MaterialIcons
+                                 name="forward-30"
+                                 size={ 90 }
+                                 color="black" />
+                </TouchableHighlight>
+              </View>
+              <View style={ { flex: 0.5 } } />
+            </View>
+            <Text style={ styles.contentHeaderText }>
+              How to participate
+            </Text>
+            <Text style={ styles.contentText }>
+              Join us at the
+              <Text style={ styles.inlineBold }>
+                { " " }Glade
+              </Text> on
+              { "\n" }Sunday,
+              <Text style={ styles.inlineBold }>
+                { " " }August 29
+              </Text> at 12 pm, or
+              { "\n" }Saturday,
+              <Text style={ styles.inlineBold }>
+                { " " }September 4
+              </Text> at 12pm.
+              { "\n" }
+              { "\n" }Visit
+              { " " }
+              <Text
+                    style={ styles.externalLinkPlain }
+                    onPress={ () => {
+                                Linking.openURL("https://littleisland.org");
+                              } }>
+                littleisland.org
+              </Text> to reserve a free timed entry ticket. Can't decide which date to attend? Come and join us twice! Each performance will sound different from the next.
+              { "\n" }
+              { "\n" }Let's press
+              <Text style={ styles.inlineBold }>
+                { " " }Play
+              </Text> at the same time! Composer
+              <Text style={ styles.inlineBold }>
+                { " " }Raquel Acevedo Klein
+              </Text> will provide a countdown at the start of the event.
+              { "\n" }
+              { "\n" }Bring bluetooth speakers or any speaker device to amplify your sound! Enjoy music coming not only from you, but other speakers and smartphones throughout
+              the Glade! Pave your own path through the music.
+            </Text>
+            <Text style={ styles.contentHeaderText }>
+              Learn More
+            </Text>
+            <Text style={ styles.contentText }>
+              <Text style={ styles.inlineSuperFancy }>
+                P
+              </Text>
+              <Text style={ styles.inlineFancy }>
+                olyphonic Interlace
+              </Text>
+              { " " }is a symphonious, surround-sound performance conceived and composed by
+              <Text style={ styles.inlineBold }>
+                { ' ' }Raquel Acevedo Klein
+              </Text> that will take place at Little Island on
+              <Text style={ styles.inlineBold }>
+                August 29th
+              </Text> at 12pm and
+              <Text style={ styles.inlineBold }>
+                September 4th
+              </Text> at 12pm. The music invites you to travel amidst a sea of voices, emerging from several directions. Raquel will provide a countdown at the start of
+              the event and invite the audience to play parts of the piece from their phones simultaneously.
+              { "\n\n" }Each track has been pre-recorded by Raquel, who as a singer, weaves her own voice into a polyphonic tapestry of stories from across New York City at the
+              cusp of reopening. All are welcome to play parts of the music from a smartphone.
+            </Text>
+            <Text style={ styles.contentHeaderText }>
+              Location
+            </Text>
+            <Text style={ styles.contentText }>
+              <Text style={ styles.inlineSuperFancy }>
+                P
+              </Text>
+              <Text style={ styles.inlineFancy }>
+                olyphonic Interlace
+              </Text> will take place at the Glade on Little Island:
+              { "\n" }
+              { "\n" }
+              <Image
+                     style={ { height: 150, width: 283, } }
+                     source={ require('./assets/res/map.png') } />
+              { "\n" }a 2.4-acre public park in Hudson River Park on the West side of Manhattan. It is located in the Hudson River off the West Side Highway with entrances at
+              West 13th and 14th Streets.
+            </Text>
+            <Text style={ styles.contentHeaderText }>
+              The Team
+            </Text>
+            <Text style={ styles.contentText }>
+              Music by
+              { " " }
+              <Text
+                    style={ styles.externalLinkPlain }
+                    onPress={ () => {
+                                Linking.openURL("https://www.raquelacevedoklein.com/");
+                              } }>
+                Raquel Acevedo Klein
+              </Text>.
+              { "\n" }Mixing by Brian Schuh and
+              { " " }
+              <Text
+                    style={ styles.externalLinkPlain }
+                    onPress={ () => {
+                                Linking.openURL("https://www.khaledjean.com/");
+                              } }>
+                Khaled Jean
+              </Text>.
+              { "\n" }App by
+              { " " }
+              <Text
+                    style={ styles.externalLinkPlain }
+                    onPress={ () => {
+                                Linking.openURL("http://brianellissound.com");
+                              } }>
+                Brian Ellis
+              </Text>.
+              { "\n" }Produced by Boo Froebel and Hanako Yamaguchi.
+              { "\n" }Music Advisor, Conrad Cummings
+              { "\n" }Special thanks to Mengtong Guan.
+              { "\n" }World Premiere of Polyphonic Interlace was commissioned by Little Island.
+            </Text>
+            <View style={ { flexDirection: 'row', height: 65, paddingTop: 20, paddingBottom: 0, margin: 0 } }>
+              <View style={ { flex: 0.5 } } />
+              <View style={ { flexDirection: 'row', backgroundColor: '#7BF8D9', borderRadius: 33 } }>
+                <Text style={ { fontSize: 25, paddingTop: 8 } }>
+                  { ' ' } Track 1
+                  { ' ' }
+                </Text>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 65 } }
+                                    onPress={ () => replayThirtyTrack(1) }>
+                  <MaterialIcons
+                                 name="replay-30"
+                                 size={ 45 }
+                                 color="black" />
+                </TouchableHighlight>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 33 } }
+                                    onPress={ () => buttonPressedTrack(1) }>
+                  { buttonTracksState[0] === play_button_icon ?
+                    <Ionicons
+                              name="play-circle"
+                              size={ 40 }
+                              color="black" /> :
+                    <Ionicons
+                              name="pause-circle"
+                              size={ 40 }
+                              color="black" /> }
+                </TouchableHighlight>
+                <Text style={ { fontSize: 25, paddingTop: 8, width: 70 } }>
+                  { timestampDisplayA }
+                </Text>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 33 } }
+                                    onPress={ () => forwardThirtyTrack(1) }>
+                  <MaterialIcons
+                                 name="forward-30"
+                                 size={ 45 }
+                                 color="black" />
+                </TouchableHighlight>
+              </View>
+              <View style={ { flex: 0.5 } } />
+            </View>
+            <View style={ { flexDirection: 'row', height: 65, paddingTop: 20, paddingBottom: 0, margin: 0 } }>
+              <View style={ { flex: 0.5 } } />
+              <View style={ { flexDirection: 'row', backgroundColor: '#7BF8D9', borderRadius: 33 } }>
+                <Text style={ { fontSize: 25, paddingTop: 8 } }>
+                  { ' ' } Track 2
+                  { ' ' }
+                </Text>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 65 } }
+                                    onPress={ () => replayThirtyTrack(2) }>
+                  <MaterialIcons
+                                 name="replay-30"
+                                 size={ 45 }
+                                 color="black" />
+                </TouchableHighlight>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 33 } }
+                                    onPress={ () => buttonPressedTrack(2) }>
+                  { buttonTracksState[1] === play_button_icon ?
+                    <Ionicons
+                              name="play-circle"
+                              size={ 40 }
+                              color="black" /> :
+                    <Ionicons
+                              name="pause-circle"
+                              size={ 40 }
+                              color="black" /> }
+                </TouchableHighlight>
+                <Text style={ { fontSize: 25, paddingTop: 8, width: 70 } }>
+                  { timestampDisplayB }
+                </Text>
+                <TouchableHighlight
+                                    underlayColor="#7BF8D9"
+                                    style={ { borderRadius: 33 } }
+                                    onPress={ () => forwardThirtyTrack(2) }>
+                  <MaterialIcons
+                                 name="forward-30"
+                                 size={ 45 }
+                                 color="black" />
+                </TouchableHighlight>
+              </View>
+              <View style={ { flex: 0.5 } } />
+            </View>
+            { /*<View style={ { flexDirection: 'row', height: 65, paddingTop: 20, paddingBottom: 0, margin: 0 } }>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  <View style={ { flex: 0.5 } } />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  <View style={ { flexDirection: 'row', backgroundColor: '#7BF8D9', borderRadius: 33 } }>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <Text style={ { fontSize: 25, paddingTop: 8 } }>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      { ' ' } Track 3
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      { ' ' }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </Text>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <TouchableHighlight
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        underlayColor="#7BF8D9"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        style={ { borderRadius: 65 } }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        onPress={ () => replayThirtyTrack(3) }>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <MaterialIcons
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     name="replay-30"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     size={ 45 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     color="black" />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </TouchableHighlight>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <TouchableHighlight
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        underlayColor="#7BF8D9"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        style={ { borderRadius: 33 } }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        onPress={ () => buttonPressedTrack(3) }>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      { buttonTracksState[2] === play_button_icon ?
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <Ionicons
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  name="play-circle"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  size={ 40 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  color="black" /> :
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <Ionicons
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  name="pause-circle"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  size={ 40 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  color="black" /> }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </TouchableHighlight>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <Text style={ { fontSize: 25, paddingTop: 8, width: 60 } }>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      { timestampDisplayC }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </Text>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <TouchableHighlight
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        underlayColor="#7BF8D9"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        style={ { borderRadius: 33 } }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        onPress={ () => forwardThirtyTrack(3) }>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <MaterialIcons
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     name="forward-30"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     size={ 45 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     color="black" />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </TouchableHighlight>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  </View>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  <View style={ { flex: 0.5 } } />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </View>*/ }
+            <Text>
+              { "\n\n\n" }
+            </Text>
+          </ScrollView>
+        </ImageBackground>
+      </SafeAreaView>
+      );
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: "column"
+  },
+  scrollView: {
+    // backgroundColor: '#ffba54a0',
+  },
+  innerText: {
+    fontWeight: 'bold',
   },
   image: {
+    flex: 1,
+    resizeMode: "stretch",
+    justifyContent: "center"
+  },
+  recOrange: {
     flex: 1,
     resizeMode: "cover",
     justifyContent: "center"
   },
   buttonStyle: {
-    marginTop:20,
-    marginLeft:20,
-    marginRight:20,
+    marginTop: 20,
+    marginLeft: 20,
+    marginRight: 20,
   },
   titletext: {
-    color: "black",
-    fontSize: 42,
-    fontWeight: "bold",
-        fontFamily: 'Montserrat_100Thin',
-
-    textAlign: "right",
-    backgroundColor: "#FFFFFFa0"
+    marginTop: 20,
+    textAlign: "center",
+    backgroundColor: "#ffba54a0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   authorText: {
     color: "black",
     fontSize: 25,
-        fontFamily: 'Montserrat_400Regular_Italic',
-
+    fontFamily: 'FuturaBold',
     fontWeight: "bold",
     textAlign: "right",
-    backgroundColor: "#FFFFFFa0"
+    backgroundColor: "#8AF5DA"
   },
-  text: {
-    borderWidth: 20,
-    borderColor:"#FFFFFF00",
-    margin:20,
+  contentHeaderText: {
+    borderWidth: 10,
+    borderColor: "#FFFFFF00",
+    marginTop: 20,
+    marginBottom: 0,
+    marginLeft: 20,
+    marginRight: 20,
     color: "black",
-    fontSize: 20,
-    fontFamily: 'Lusitana_400Regular',
+    fontSize: 40,
+    fontFamily: 'Fancy',
+    textAlign: "center",
+    backgroundColor: "#ffba54a0"
+  },
+  inlineSuperFancy: {
+    fontFamily: 'Baroque',
+    fontStyle: 'italic',
+    marginBottom: -10,
+  // textVerticalAlign: 4,
+  },
+  inlineFancy: {
+    fontFamily: 'Fancy',
+    marginBottom: -10,
+
+  },
+  inlineBold: {
+    fontFamily: 'FuturaBold',
+  },
+  externalLinkPlain: {
+    textDecorationLine: "underline",
+    textDecorationStyle: "solid",
+  },
+  contentText: {
+    borderWidth: 10,
+    borderColor: "#FFFFFF00",
+    marginTop: 0,
+    marginBottom: 0,
+    marginLeft: 20,
+    marginRight: 20,
+    color: "black",
+    fontSize: 22,
+    fontFamily: 'FuturaNormal',
     textAlign: "left",
-    backgroundColor: "#FFFFFFa0"
+    backgroundColor: "#7BF8D9"
   }
 });

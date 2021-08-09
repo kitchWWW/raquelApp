@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "playerApp",
+    "name": "Polyphonic Interlace",
     "owner": "brianellissound",
     "slug": "PolyphonicInterlace",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.brianellissound.polyphonicinterlace",
-      "buildNumber": "1.0.0"
+      "buildNumber": "1.0.4"
     },
     "android": {
       "adaptiveIcon": {
